@@ -1,0 +1,855 @@
+/* =========================================
+   PREMIUM MAGNETIC BACK BUTTON
+========================================= */
+
+.back-dashboard-button {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+
+  margin: 0 0 42px 0;
+  padding: 13px 22px;
+
+  /* Clearly separated from page */
+  background: linear-gradient(
+    135deg,
+    #171321 0%,
+    #211832 50%,
+    #171321 100%
+  );
+
+  color: #f4edff;
+
+  border: 1px solid rgba(168, 85, 247, 0.55);
+  border-radius: 14px;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+
+  /* Premium depth */
+  box-shadow:
+    0 6px 0 rgba(0, 0, 0, 0.35),
+    0 12px 28px rgba(0, 0, 0, 0.35),
+    0 0 20px rgba(124, 58, 237, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease,
+    background 0.3s ease;
+}
+
+/* Purple magnetic glow behind button */
+/* Purple magnetic glow */
+.back-dashboard-button::after {
+  content: "";
+
+  position: absolute;
+  inset: -2px;
+
+  border-radius: inherit;
+
+  background: linear-gradient(
+    90deg,
+    #7c3aed,
+    #c084fc,
+    #7c3aed
+  );
+
+  opacity: 0;
+  filter: blur(12px);
+
+  z-index: -1;
+
+  transition: opacity 0.3s ease;
+}
+
+/* Arrow BEFORE the text */
+.back-dashboard-button::before {
+  content: "↩";
+
+  font-size: 17px;
+  line-height: 1;
+
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Hover */
+.back-dashboard-button:hover {
+  transform: translateY(-4px) scale(1.025);
+
+  background: linear-gradient(
+    135deg,
+    #24163b,
+    #321d50,
+    #24163b
+  );
+
+  border-color: rgba(192, 132, 252, 0.9);
+
+  box-shadow:
+    0 8px 0 rgba(0, 0, 0, 0.35),
+    0 18px 40px rgba(0, 0, 0, 0.42),
+    0 0 35px rgba(124, 58, 237, 0.28),
+    0 0 70px rgba(168, 85, 247, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.back-dashboard-button:hover::before {
+  opacity: 0.55;
+}
+
+.back-dashboard-button:hover::after {
+  transform: translateX(-5px);
+}
+
+/* Click */
+.back-dashboard-button:active {
+  transform: translateY(1px) scale(0.98);
+
+  box-shadow:
+    0 3px 0 rgba(0, 0, 0, 0.35),
+    0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Keyboard focus */
+.back-dashboard-button:focus-visible {
+  outline: none;
+
+  border-color: #c084fc;
+
+  box-shadow:
+    0 0 0 3px rgba(168, 85, 247, 0.18),
+    0 15px 35px rgba(124, 58, 237, 0.25);
+}
+
+/* ================================
+   SKILLS PAGE
+================================ */
+
+.skills-page {
+  min-height: 100vh;
+  padding: 60px 7%;
+  background:
+    radial-gradient(
+      circle at 10% 10%,
+      rgba(124, 58, 237, 0.16),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at 90% 20%,
+      rgba(236, 72, 153, 0.10),
+      transparent 30%
+    ),
+    #08080d;
+  color: #ffffff;
+}
+
+
+/* ================================
+   HEADER
+================================ */
+
+.skills-header {
+  max-width: 900px;
+  margin: 0 auto 40px;
+}
+
+.small-heading {
+  color: #a855f7;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.skills-header h1 {
+  font-size: clamp(42px, 6vw, 68px);
+  line-height: 1.05;
+  font-weight: 500;
+  margin: 0 0 18px;
+  letter-spacing: -2px;
+}
+
+.skills-header p {
+  color: #a9a9bd;
+  font-size: 17px;
+  line-height: 1.8;
+  max-width: 750px;
+}
+
+
+/* ================================
+   ADD SKILL CARD
+================================ */
+
+.add-skill-card {
+  max-width: 1100px;
+  margin: 0 auto 20px;
+
+  padding: 28px;
+
+  display: grid;
+  grid-template-columns: 1fr 190px auto;
+  gap: 14px;
+  align-items: end;
+
+  background: rgba(20, 20, 28, 0.85);
+
+  border: 1px solid rgba(255, 255, 255, 0.10);
+
+  border-radius: 22px;
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.35);
+
+  backdrop-filter: blur(20px);
+}
+
+.manual-input-section,
+.level-section {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.manual-input-section label,
+.level-section label {
+  color: #b8b8ca;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+
+/* ================================
+   INPUT
+================================ */
+
+.add-skill-card input,
+.other-input-row input {
+  width: 100%;
+  box-sizing: border-box;
+
+  height: 56px;
+
+  padding: 0 18px;
+
+  border-radius: 14px;
+
+  border: 1px solid #292936;
+
+  background: #101017;
+
+  color: #ffffff;
+
+  font-size: 15px;
+
+  outline: none;
+
+  transition: 0.2s ease;
+}
+
+.add-skill-card input::placeholder,
+.other-input-row input::placeholder {
+  color: #6f6f80;
+}
+
+.add-skill-card input:focus,
+.other-input-row input:focus {
+  border-color: #8b5cf6;
+
+  box-shadow:
+    0 0 0 3px rgba(139, 92, 246, 0.12);
+}
+
+
+/* ================================
+   LEVEL SELECT
+================================ */
+
+.level-section select {
+  height: 56px;
+
+  padding: 0 15px;
+
+  border-radius: 14px;
+
+  font-size: 15px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  outline: none;
+
+  appearance: auto;
+
+  transition: 0.2s ease;
+}
+
+
+/* BEGINNER */
+
+.level-select.beginner {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+}
+
+
+/* INTERMEDIATE */
+
+.level-select.intermediate {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+
+/* ADVANCED */
+
+.level-select.advanced {
+  background: rgba(34, 197, 94, 0.18);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.5);
+}
+
+
+/* Dropdown options */
+
+.level-select option {
+  background: #181820;
+  color: #ffffff;
+  padding: 10px;
+}
+
+
+/* ================================
+   ADD BUTTON
+================================ */
+
+.add-button {
+  height: 56px;
+
+  padding: 0 25px;
+
+  border: none;
+  border-radius: 14px;
+
+  background: linear-gradient(
+    135deg,
+    #7c3aed,
+    #a855f7
+  );
+
+  color: white;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  white-space: nowrap;
+
+  transition: 0.2s ease;
+
+  box-shadow:
+    0 10px 25px rgba(124, 58, 237, 0.25);
+}
+
+.add-button:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 14px 35px rgba(124, 58, 237, 0.4);
+}
+
+.add-button:active {
+  transform: scale(0.97);
+}
+
+
+/* ================================
+   MESSAGE
+================================ */
+
+.skill-message {
+  max-width: 1100px;
+  margin: 12px auto;
+
+  padding: 12px 18px;
+
+  border-radius: 12px;
+
+  background: rgba(34, 197, 94, 0.12);
+
+  border: 1px solid rgba(34, 197, 94, 0.25);
+
+  color: #86efac;
+
+  font-size: 14px;
+}
+
+
+/* ================================
+   COMMON SKILLS
+================================ */
+
+.common-skills-card {
+  max-width: 1100px;
+
+  margin: 25px auto;
+
+  padding: 30px;
+
+  background: rgba(17, 17, 24, 0.9);
+
+  border: 1px solid rgba(255, 255, 255, 0.09);
+
+  border-radius: 22px;
+}
+
+.section-title h2 {
+  margin: 0;
+
+  font-size: 22px;
+}
+
+.section-title p {
+  margin: 7px 0 25px;
+
+  color: #777789;
+
+  font-size: 14px;
+}
+
+
+/* ================================
+   SKILL OPTIONS
+================================ */
+
+.skills-list {
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fill, minmax(180px, 1fr));
+
+  gap: 12px;
+}
+
+.skill-option {
+  min-height: 52px;
+
+  padding: 0 16px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 10px;
+
+  border-radius: 13px;
+
+  border: 1px solid #292936;
+
+  background: #101017;
+
+  color: #e7e7ef;
+
+  font-size: 14px;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.skill-option:hover:not(:disabled) {
+  border-color: #8b5cf6;
+
+  background: rgba(139, 92, 246, 0.12);
+
+  transform: translateY(-2px);
+}
+
+.skill-option-icon {
+  color: #a855f7;
+
+  font-size: 20px;
+}
+
+.skill-option.already-added {
+  opacity: 0.45;
+
+  cursor: default;
+
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.skill-option.already-added .skill-option-icon {
+  color: #4ade80;
+}
+
+
+/* ================================
+   OTHER SKILL
+================================ */
+
+.other-skill-section {
+  margin-top: 35px;
+
+  padding-top: 25px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.other-skill-section h3 {
+  margin: 0 0 6px;
+
+  font-size: 17px;
+}
+
+.other-skill-section p {
+  margin: 0 0 15px;
+
+  color: #777789;
+
+  font-size: 14px;
+}
+
+.other-input-row {
+  display: flex;
+
+  gap: 12px;
+}
+
+.other-input-row input {
+  flex: 1;
+}
+
+.other-add-button {
+  height: 56px;
+
+  padding: 0 28px;
+
+  border: none;
+
+  border-radius: 14px;
+
+  background: #ffffff;
+
+  color: #111118;
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.other-add-button:hover {
+  transform: translateY(-2px);
+
+  background: #e9e9f0;
+}
+
+
+/* ================================
+   YOUR SKILLS
+================================ */
+
+.your-skills-card {
+  max-width: 1100px;
+
+  margin: 25px auto;
+
+  padding: 30px;
+
+  min-height: 250px;
+
+  background: rgba(17, 17, 24, 0.9);
+
+  border: 1px solid rgba(255, 255, 255, 0.09);
+
+  border-radius: 22px;
+}
+
+.your-skills-header {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  margin-bottom: 25px;
+}
+
+.your-skills-header h2 {
+  margin: 0;
+
+  font-size: 21px;
+}
+
+.your-skills-header p {
+  margin: 6px 0 0;
+
+  color: #777789;
+
+  font-size: 14px;
+}
+
+
+/* ================================
+   EMPTY STATE
+================================ */
+
+.empty-skills {
+  min-height: 200px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  text-align: center;
+}
+
+.empty-icon {
+  width: 58px;
+  height: 58px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: rgba(124, 58, 237, 0.18);
+
+  color: #a855f7;
+
+  font-size: 30px;
+
+  margin-bottom: 15px;
+}
+
+.empty-skills h3 {
+  margin: 0 0 8px;
+
+  font-size: 17px;
+}
+
+.empty-skills p {
+  margin: 0;
+
+  max-width: 500px;
+
+  color: #707080;
+
+  line-height: 1.6;
+}
+
+
+/* ================================
+   ADDED SKILLS
+================================ */
+
+.added-skills-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fill, minmax(250px, 1fr));
+
+  gap: 14px;
+}
+
+.added-skill-card {
+  position: relative;
+
+  padding: 20px;
+
+  border-radius: 16px;
+
+  background: #111118;
+
+  border: 1px solid #292936;
+
+  transition: 0.2s ease;
+}
+
+.added-skill-card:hover {
+  transform: translateY(-2px);
+}
+
+
+/* Level-specific borders */
+
+.added-skill-card.beginner {
+  border-color: rgba(59, 130, 246, 0.45);
+}
+
+.added-skill-card.intermediate {
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.added-skill-card.advanced {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.added-skill-info h3 {
+  margin: 0 0 12px;
+
+  font-size: 17px;
+
+  color: #ffffff;
+}
+
+
+/* ================================
+   LEVEL BADGE
+================================ */
+
+.skill-level-badge {
+  display: inline-flex;
+
+  padding: 6px 10px;
+
+  border-radius: 8px;
+
+  font-size: 12px;
+
+  font-weight: 700;
+}
+
+.skill-level-badge.beginner {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.skill-level-badge.intermediate {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.skill-level-badge.advanced {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+
+/* ================================
+   REMOVE BUTTON
+================================ */
+
+.remove-skill {
+  position: absolute;
+
+  top: 14px;
+  right: 14px;
+
+  width: 30px;
+  height: 30px;
+
+  border-radius: 50%;
+
+  border: 1px solid #30303c;
+
+  background: #181820;
+
+  color: #9999a8;
+
+  cursor: pointer;
+
+  font-size: 20px;
+
+  line-height: 1;
+
+  transition: 0.2s ease;
+}
+
+.remove-skill:hover {
+  background: rgba(239, 68, 68, 0.15);
+
+  border-color: rgba(239, 68, 68, 0.5);
+
+  color: #f87171;
+}
+
+
+/* ================================
+   MOBILE
+================================ */
+
+@media (max-width: 800px) {
+
+  .skills-page {
+    padding: 40px 18px;
+  }
+
+  .skills-header h1 {
+    font-size: 42px;
+  }
+
+  .add-skill-card {
+    grid-template-columns: 1fr;
+  }
+
+  .add-button {
+    width: 100%;
+  }
+
+  .skills-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .other-input-row {
+    flex-direction: column;
+  }
+
+  .other-add-button {
+    width: 100%;
+  }
+
+}
+
+
+@media (max-width: 500px) {
+
+  .skills-header h1 {
+    font-size: 36px;
+  }
+
+  .skills-header p {
+    font-size: 15px;
+  }
+
+  .add-skill-card,
+  .common-skills-card,
+  .your-skills-card {
+    padding: 20px;
+  }
+
+  .skills-list {
+    grid-template-columns: 1fr;
+  }
+
+  .added-skills-grid {
+    grid-template-columns: 1fr;
+  }
+
+}

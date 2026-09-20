@@ -1,0 +1,28 @@
+{
+  "name": "student-career-planner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Student Skill-Gap & Career Planner",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server start",
+    "seed": "npm --prefix server run seed",
+    "install:all": "npm install && npm --prefix client install && npm --prefix server install",
+    "server:start": "npm --prefix server run start",
+    "client:build": "npm --prefix client run build",
+    "test": "npm --prefix server run test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "@google/genai": "^2.23.0",
+    "axios": "^1.20.0",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0"
+  }
+}
