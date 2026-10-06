@@ -1,9 +1,14 @@
+import mongoose from "mongoose";
 import { getHealthStatus } from "../services/healthService.js";
 
 export const healthCheck = (req, res) => {
-  const health = getHealthStatus();
+  const isDbConnected = mongoose.connection.readyState === 1;
+  const health = {
+    ...getHealthStatus(),
+    databaseConnected: isDbConnected
+  };
 
-  res.status(200).json(health);
+  res.status(isDbConnected ? 200 : 503).json(health);
 };
 
 import {
@@ -12,11 +17,14 @@ import {
 
 const getHealth =
   (req, res) => {
-    const health =
-      healthService.getHealthStatus();
+    const isDbConnected = mongoose.connection.readyState === 1;
+    const health = {
+      ...getHealthStatus(),
+      databaseConnected: isDbConnected
+    };
 
     const statusCode =
-      health.databaseConnected
+      isDbConnected
         ? 200
         : 503;
 

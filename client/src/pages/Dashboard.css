@@ -613,9 +613,9 @@
 .metric-card {
   position: relative;
 
-  min-height: 225px;
+  min-height: 160px;
 
-  padding: 22px;
+  padding: 16px;
 
   border:
     1px solid
@@ -774,7 +774,7 @@
 
 
 .metric-content {
-  margin-top: 31px;
+  margin-top: 10px;
 }
 
 
@@ -792,7 +792,7 @@
 
   align-items: baseline;
 
-  gap: 2px;
+  gap: 4px;
 }
 
 
@@ -801,7 +801,7 @@
     "Space Grotesk",
     sans-serif;
 
-  font-size: 49px;
+  font-size: 40px;
 
   line-height: 1;
 
@@ -841,10 +841,10 @@
 .metric-progress {
   position: absolute;
 
-  left: 22px;
-  right: 22px;
+  left: 16px;
+  right: 16px;
 
-  bottom: 22px;
+  bottom: 6px;
 }
 
 
@@ -3196,4 +3196,606 @@
     font-size: 9px;
   }
 
+}
+/* =========================================
+   SKILLS + RESUME FEATURE SECTION
+========================================= */
+
+.dashboard-feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 28px 0;
+}
+
+/* =========================================
+   MAIN CARDS
+========================================= */
+
+.dashboard-feature-card {
+  position: relative;
+  height: 300px;
+  min-height: 300px;
+  padding: 28px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* =========================================
+   COMMON HEADER
+========================================= */
+
+.feature-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  position: relative;
+  z-index: 2;
+}
+
+.feature-icon {
+  width: 58px;
+  height: 58px;
+  min-width: 58px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 16px;
+}
+
+.feature-header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.feature-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.feature-title-row h2 {
+  margin: 0;
+  font-size: 25px;
+  line-height: 1.2;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.feature-header-content > p {
+  margin: 9px 0 0;
+  max-width: 500px;
+
+  font-size: 14px;
+  line-height: 1.55;
+  color: #9996a8;
+}
+
+/* =========================================
+   MY SKILLS
+========================================= */
+
+.skills-feature {
+  background:
+    radial-gradient(
+      circle at 10% 10%,
+      rgba(124, 75, 255, 0.12),
+      transparent 45%
+    ),
+    #0c0a16;
+
+  border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.skills-icon {
+  background: rgba(124, 75, 255, 0.13);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #a78bfa;
+}
+
+/* Manage Skills button */
+
+.manage-skills-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  height: 42px;
+  padding: 0 16px;
+
+  border-radius: 11px;
+
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  color: #e7e3f3;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.manage-skills-button:hover {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.35);
+}
+
+/* Skills action box */
+
+.skill-action-box {
+  position: absolute;
+
+  left: 28px;
+  right: 28px;
+  bottom: 24px;
+
+  height: 88px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 16px;
+
+  padding: 14px 18px;
+
+  box-sizing: border-box;
+
+  border-radius: 16px;
+
+  background: rgba(91, 54, 190, 0.10);
+  border: 1px solid rgba(139, 92, 246, 0.18);
+}
+
+.skill-plus-icon {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: rgba(124, 75, 255, 0.16);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+
+  color: #b197fc;
+}
+
+.skill-action-box h3 {
+  margin: 0 0 5px;
+
+  font-size: 15px;
+  font-weight: 600;
+  color: #eeeaf8;
+}
+
+.skill-action-box p {
+  margin: 0;
+
+  font-size: 12px;
+  line-height: 1.45;
+
+  color: #89859a;
+
+  max-width: 500px;
+}
+
+/* =========================================
+   RESUME
+========================================= */
+
+.resume-feature {
+  background:
+    radial-gradient(
+      circle at 90% 15%,
+      rgba(139, 92, 246, 0.14),
+      transparent 45%
+    ),
+    #0d0b18;
+
+  border: 1px solid rgba(139, 92, 246, 0.32);
+}
+
+.resume-icon {
+  background: rgba(0, 190, 255, 0.10);
+  border: 1px solid rgba(0, 190, 255, 0.28);
+  color: #19c5ff;
+}
+
+/* Resume button */
+
+/* =========================================
+   ✨ PREMIUM ANALYZE RESUME BUTTON
+========================================= */
+
+.resume-analysis-button {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  height: 44px;
+  padding: 0 18px;
+
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.20),
+      rgba(59, 130, 246, 0.10)
+    );
+
+  color: #f5f2ff;
+
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 8px 25px rgba(90, 60, 200, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  backdrop-filter: blur(10px);
+
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+
+/* ✨ Moving shine */
+
+.resume-analysis-button::before {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  left: -130%;
+
+  width: 80%;
+  height: 100%;
+
+  background: linear-gradient(
+    110deg,
+    transparent,
+    rgba(255, 255, 255, 0.16),
+    transparent
+  );
+
+  transform: skewX(-20deg);
+
+  transition: left 0.7s ease;
+}
+
+
+/* 🌌 Soft glow */
+
+.resume-analysis-button::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  border-radius: inherit;
+
+  box-shadow:
+    0 0 0 rgba(139, 92, 246, 0);
+
+  transition: box-shadow 0.3s ease;
+
+  pointer-events: none;
+}
+
+
+/* Hover */
+
+.resume-analysis-button:hover {
+  transform: translateY(-2px);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.30),
+      rgba(59, 130, 246, 0.16)
+    );
+
+  border-color: rgba(180, 160, 255, 0.65);
+
+  box-shadow:
+    0 12px 30px rgba(90, 60, 220, 0.22),
+    0 0 22px rgba(139, 92, 246, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+
+/* Shine enters */
+
+.resume-analysis-button:hover::before {
+  left: 140%;
+}
+
+
+/* Glow */
+
+.resume-analysis-button:hover::after {
+  box-shadow:
+    0 0 20px rgba(139, 92, 246, 0.14);
+}
+
+
+/* Arrow */
+
+.resume-analysis-button svg {
+  width: 15px;
+  height: 15px;
+
+  color: #c4b5fd;
+
+  transition:
+    transform 0.3s ease,
+    color 0.3s ease;
+}
+
+
+/* Arrow moves */
+
+.resume-analysis-button:hover svg {
+  transform: translate(4px, -4px);
+  color: #ffffff;
+}
+
+
+/* Click */
+
+.resume-analysis-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* =========================================
+   RESUME VISUAL
+========================================= */
+
+.resume-visual {
+  position: absolute;
+
+  right: 55px;
+  bottom: -12px;
+
+  width: 210px;
+  height: 170px;
+
+  transform: scale(0.78);
+  transform-origin: bottom right;
+
+  pointer-events: none;
+}
+
+/* Resume document */
+
+.resume-document {
+  position: absolute;
+
+  left: 25px;
+  bottom: 0;
+
+  width: 105px;
+  height: 140px;
+
+  padding: 16px;
+
+  box-sizing: border-box;
+
+  border-radius: 10px;
+
+  background: linear-gradient(
+    145deg,
+    #182d70,
+    #101d4e
+  );
+
+  border: 1px solid rgba(110, 130, 255, 0.4);
+
+  transform: rotate(-7deg);
+
+  box-shadow:
+    0 15px 35px rgba(0, 0, 0, 0.35),
+    0 0 30px rgba(40, 100, 255, 0.12);
+}
+
+.resume-avatar {
+  width: 27px;
+  height: 27px;
+
+  border-radius: 50%;
+
+  background: #7478ff;
+
+  margin-bottom: 12px;
+}
+
+.resume-line {
+  width: 75%;
+  height: 5px;
+
+  margin-top: 8px;
+
+  border-radius: 10px;
+
+  background: #6875e9;
+}
+
+.resume-line.large {
+  width: 88%;
+}
+
+.resume-line.short {
+  width: 55%;
+}
+
+/* Magnifier */
+
+.resume-magnifier {
+  position: absolute;
+
+  right: 8px;
+  bottom: 30px;
+
+  width: 65px;
+  height: 65px;
+}
+
+.magnifier-glass {
+  position: absolute;
+
+  width: 48px;
+  height: 48px;
+
+  border-radius: 50%;
+
+  border: 7px solid #10baf4;
+
+  box-sizing: border-box;
+}
+
+.magnifier-handle {
+  position: absolute;
+
+  width: 34px;
+  height: 8px;
+
+  right: -21px;
+  bottom: 3px;
+
+  border-radius: 10px;
+
+  background: #10baf4;
+
+  transform: rotate(48deg);
+}
+
+/* Sparkles */
+
+.resume-spark {
+  position: absolute;
+
+  color: #12c9ff;
+
+  font-size: 18px;
+
+  text-shadow: 0 0 12px rgba(0, 200, 255, 0.8);
+}
+
+.spark-one {
+  top: 15px;
+  right: 5px;
+}
+
+.spark-two {
+  top: 55px;
+  left: 0;
+}
+
+.spark-three {
+  bottom: 10px;
+  left: 35px;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1000px) {
+  .dashboard-feature-card {
+    height: 320px;
+  }
+
+  .feature-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .manage-skills-button,
+  .resume-analysis-button {
+    height: 38px;
+  }
+}
+
+@media (max-width: 800px) {
+  .dashboard-feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-feature-card {
+    height: 300px;
+  }
+
+  .feature-title-row {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+@media (max-width: 550px) {
+  .dashboard-feature-card {
+    height: auto;
+    min-height: 330px;
+    padding: 22px;
+  }
+
+  .feature-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .feature-title-row h2 {
+    font-size: 22px;
+  }
+
+  .manage-skills-button,
+  .resume-analysis-button {
+    width: auto;
+  }
+
+  .skill-action-box {
+    left: 22px;
+    right: 22px;
+    bottom: 20px;
+  }
+
+  .resume-visual {
+    right: 20px;
+    transform: scale(0.65);
+  }
+}
+.skill-action-box {
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.skill-action-box:hover {
+  transform: translateY(-2px);
+  border-color: rgba(139, 92, 246, 0.45);
+  background: rgba(91, 54, 190, 0.16);
 }

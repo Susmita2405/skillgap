@@ -1,6 +1,7 @@
 const requiredEnvironmentVariables = [
   "MONGO_URI",
-  "JWT_SECRET"
+  "JWT_SECRET",
+  "GEMINI_API_KEY"
 ];
 
 const validateEnvironment = () => {

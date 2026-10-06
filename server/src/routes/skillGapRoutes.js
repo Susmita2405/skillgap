@@ -3,16 +3,24 @@ import express from "express";
 import {
   generateSkillGapAnalysis,
   getLatestSkillGap,
+  getSkillGapAnalysis,
   getMySkillGapHistory
 } from "../controllers/skillGapController.js";
 
-import { protect } from "../middleware/authMiddleware.js";
 import {
-  getSkillGapAnalysis
-} from "../controllers/skillGapController.js";
+  protect
+} from "../middleware/authMiddleware.js";
 
 
-const router = express.Router();
+const router =
+  express.Router();
+
+
+/*
+|--------------------------------------------------------------------------
+| GENERATE / REFRESH
+|--------------------------------------------------------------------------
+*/
 
 router.post(
   "/analyze",
@@ -20,11 +28,25 @@ router.post(
   generateSkillGapAnalysis
 );
 
+
+/*
+|--------------------------------------------------------------------------
+| LATEST
+|--------------------------------------------------------------------------
+*/
+
 router.get(
   "/latest",
   protect,
   getLatestSkillGap
 );
+
+
+/*
+|--------------------------------------------------------------------------
+| ANALYZE SPECIFIC ROLE
+|--------------------------------------------------------------------------
+*/
 
 router.get(
   "/analyze",
@@ -32,10 +54,18 @@ router.get(
   getSkillGapAnalysis
 );
 
+
+/*
+|--------------------------------------------------------------------------
+| HISTORY
+|--------------------------------------------------------------------------
+*/
+
 router.get(
   "/history",
   protect,
   getMySkillGapHistory
 );
+
 
 export default router;

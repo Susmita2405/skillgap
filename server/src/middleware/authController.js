@@ -38,8 +38,8 @@ const sanitizeUser = (
       user.targetRole,
     skillAssessments:
       user.skillAssessments,
-    careerReadinessScore:
-      user.careerReadinessScore,
+    readinessScoreScore:
+      user.readinessScoreScore,
     onboardingCompleted:
       user.onboardingCompleted,
     preferences:

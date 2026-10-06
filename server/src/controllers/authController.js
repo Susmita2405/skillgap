@@ -8,6 +8,7 @@ import {
 
 import User from "../models/User.js";
 import Role from "../models/Role.js";
+import { recalculateAndSaveSkillGap } from "../services/skillGapService.js";
 
 
 /* =========================================================
@@ -272,6 +273,9 @@ export const updateTargetRole = async (req, res) => {
 
       await user.save();
 
+      // Automatically recalculate skill gap for the newly selected target role
+      const skillGap = await recalculateAndSaveSkillGap(user._id, role.slug || role.name);
+
       const updatedUser = await User.findById(user._id)
         .populate("targetRole")
         .select("-password");
@@ -279,7 +283,8 @@ export const updateTargetRole = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: "Target role updated successfully",
-        user: updatedUser
+        user: updatedUser,
+        skillGap
       });
     }
 
@@ -314,6 +319,9 @@ export const updateTargetRole = async (req, res) => {
 
       await user.save();
 
+      // Automatically recalculate skill gap for the custom target role
+      const skillGap = await recalculateAndSaveSkillGap(user._id, cleanedRole);
+
       const updatedUser = await User.findById(user._id)
         .populate("targetRole")
         .select("-password");
@@ -321,7 +329,8 @@ export const updateTargetRole = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: "Custom target role saved successfully",
-        user: updatedUser
+        user: updatedUser,
+        skillGap
       });
     }
 

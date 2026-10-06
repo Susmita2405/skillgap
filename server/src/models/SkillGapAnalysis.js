@@ -1,103 +1,171 @@
 import mongoose from "mongoose";
 
-const skillAnalysisSchema = new mongoose.Schema(
+const evidenceSchema = new mongoose.Schema(
+  {
+    mySkills: {
+      type: Boolean,
+      default: false,
+    },
+
+    resume: {
+      type: Boolean,
+      default: false,
+    },
+
+    github: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  {
+    _id: false,
+  }
+);
+
+const skillResultSchema = new mongoose.Schema(
   {
     skillSlug: {
       type: String,
-      required: true
+      required: true,
+      trim: true,
+    },
+
+    skillName: {
+      type: String,
+      required: true,
+      trim: true,
     },
 
     required: {
       type: Boolean,
-      default: false
+      default: false,
     },
 
     priority: {
       type: Number,
-      default: 2
+      default: 2,
     },
 
     studentScore: {
       type: Number,
       default: 0,
       min: 0,
-      max: 100
+      max: 100,
     },
 
     status: {
       type: String,
-      enum: [
-        "Strong",
-        "Moderate",
-        "Weak",
-        "Missing"
-      ],
-      required: true
+      enum: ["Strong", "Moderate", "Missing"],
+      default: "Missing",
     },
 
     gap: {
       type: Number,
-      default: 0,
       min: 0,
-      max: 100
-    }
+      max: 100,
+      default: 100,
+    },
+
+    evidence: {
+      type: evidenceSchema,
+      default: () => ({}),
+    },
   },
   {
-    _id: false
+    _id: false,
   }
 );
 
-const skillGapAnalysisSchema =
-  new mongoose.Schema(
-    {
-      user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-        index: true
-      },
+const skillGapAnalysisSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
 
-      targetRole: {
-        type: String,
-        required: true
-      },
+    targetRole: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
-      readinessScore: {
+    targetRoleName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    readinessScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
+    },
+
+    overallProgress: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
+    },
+
+    strongSkills: {
+      type: [String],
+      default: [],
+    },
+
+    moderateSkills: {
+      type: [String],
+      default: [],
+    },
+
+    missingSkills: {
+      type: [String],
+      default: [],
+    },
+
+    skillCounts: {
+      strong: {
         type: Number,
         default: 0,
-        min: 0,
-        max: 100
       },
 
-      strongSkills: {
-        type: [String],
-        default: []
+      moderate: {
+        type: Number,
+        default: 0,
       },
 
-      moderateSkills: {
-        type: [String],
-        default: []
+      missing: {
+        type: Number,
+        default: 0,
       },
-
-      weakSkills: {
-        type: [String],
-        default: []
-      },
-
-      missingSkills: {
-        type: [String],
-        default: []
-      },
-
-      skills: {
-        type: [skillAnalysisSchema],
-        default: []
-      }
     },
-    {
-      timestamps: true
-    }
-  );
+
+    skills: {
+      type: [skillResultSchema],
+      default: [],
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+/*
+ * One current Skill Gap analysis
+ * per user + target role.
+ */
+skillGapAnalysisSchema.index(
+  {
+    user: 1,
+    targetRole: 1,
+  },
+  {
+    unique: true,
+  }
+);
 
 export default mongoose.model(
   "SkillGapAnalysis",

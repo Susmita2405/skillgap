@@ -64,11 +64,11 @@ function Skills() {
 }, []);
 
   // Save skills whenever they change
-  useEffect(() => {
-    localStorage.setItem("mySkills", JSON.stringify(skills));
-  }, [skills]);
+  // useEffect(() => {
+  //   localStorage.setItem("mySkills", JSON.stringify(skills));
+  // }, [skills]);
 
-  const addSkill = (name = skillName) => {
+const addSkill = async (name = skillName) => {
   const cleanName = name.trim();
 
   if (!cleanName) {
@@ -86,20 +86,45 @@ function Skills() {
     return;
   }
 
-  const newSkill = {
-    id: Date.now(),
-    name: cleanName,
-    level: level,
-  };
+  try {
+    const response = await api.post("/skills", {
+      name: cleanName,
+      proficiency: level.toLowerCase(),
+    });
 
-  setSkills((prev) => [...prev, newSkill]);
+    const savedSkill = response.data?.data;
 
-  setSkillName("");
-  setMessage(`${cleanName} added successfully!`);
+    if (!savedSkill) {
+      throw new Error("Skill was not returned by the server.");
+    }
 
-  setTimeout(() => {
-    setMessage("");
-  }, 2000);
+    const newSkill = {
+      id: savedSkill._id,
+      name: savedSkill.name,
+      level:
+        savedSkill.proficiency === "intermediate"
+          ? "Intermediate"
+          : savedSkill.proficiency === "advanced"
+          ? "Advanced"
+          : "Beginner",
+    };
+
+    setSkills((prev) => [...prev, newSkill]);
+
+    setSkillName("");
+    setMessage(`${cleanName} added successfully!`);
+
+    setTimeout(() => {
+      setMessage("");
+    }, 2000);
+  } catch (error) {
+    console.error("Failed to add skill:", error);
+
+    setMessage(
+      error.response?.data?.message ||
+      "Unable to add skill."
+    );
+  }
 };
   const removeSkill = async (id) => {
   try {

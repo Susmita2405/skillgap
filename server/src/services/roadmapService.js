@@ -1,14 +1,13 @@
-import { GoogleGenAI } from "@google/genai";
-
 import Role from "../models/Role.js";
 import Skill from "../models/Skill.js";
 import UserSkill from "../models/UserSkill.js";
 import SkillGapAnalysis from "../models/SkillGapAnalysis.js";
-
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY
-});
-
+import User from "../models/User.js";
+import Assessment from "../models/Assessment.js";
+import ResumeAnalysis from "../models/ResumeAnalysis.js";
+import GithubAnalysis from "../models/GithubAnalysis.js";
+import { recalculateAndSaveSkillGap } from "./skillGapService.js";
+import { executeGeminiRequest } from "./geminiService.js";
 
 const normalizeRole = (role) => {
   return String(role || "")
@@ -17,7 +16,6 @@ const normalizeRole = (role) => {
     .replace(/\s+/g, "-");
 };
 
-
 const normalizeSkill = (skill) => {
   return String(skill || "")
     .trim()
@@ -25,783 +23,341 @@ const normalizeSkill = (skill) => {
     .replace(/\s+/g, " ");
 };
 
+const inFlightRoadmaps = new Map();
 
-const generateRoadmap = async (
-  userId,
-  targetRole
-) => {
-
+export const generateRoadmap = async (userId, targetRole) => {
   if (!targetRole) {
-    throw new Error(
-      "Target role is required"
-    );
+    throw new Error("Target role is required to generate roadmap.");
   }
 
+  const cacheKey = `${userId}_${String(targetRole).trim().toLowerCase()}`;
+  if (inFlightRoadmaps.has(cacheKey)) {
+    return inFlightRoadmaps.get(cacheKey);
+  }
+
+  const promise = (async () => {
+    try {
+      return await generateRoadmapInternal(userId, targetRole);
+    } finally {
+      inFlightRoadmaps.delete(cacheKey);
+    }
+  })();
+
+  inFlightRoadmaps.set(cacheKey, promise);
+  return promise;
+};
+
+const generateRoadmapInternal = async (userId, targetRole) => {
 
   /*
-   * ------------------------------------------------
-   * 1. FIND THE TARGET ROLE
-   * ------------------------------------------------
+   * 1. FIND OR RESOLVE TARGET ROLE
    */
+  const normalizedRole = normalizeRole(targetRole);
 
-  const normalizedRole =
-    normalizeRole(targetRole);
-
-
-  const role =
-    await Role.findOne({
-      $or: [
-        {
-          slug: normalizedRole
-        },
-        {
-          name: String(targetRole).trim()
-        }
-      ],
-      isActive: true
-    }).lean();
-
+  let role = await Role.findOne({
+    $or: [
+      { slug: normalizedRole },
+      { name: String(targetRole).trim() },
+      { name: new RegExp(`^${String(targetRole).trim()}$`, "i") }
+    ],
+    isActive: true
+  }).lean();
 
   if (!role) {
-    throw new Error(
-      `Target role not found: ${targetRole}`
-    );
+    role = await Role.findOne({
+      $or: [
+        { slug: normalizedRole },
+        { name: new RegExp(`^${String(targetRole).trim()}$`, "i") }
+      ]
+    }).lean();
+
+    if (!role) {
+      try {
+        role = await Role.create({
+          name: String(targetRole).trim(),
+          slug: normalizedRole,
+          description: `Personalized career roadmap and track for ${targetRole}`,
+          category: "Software Development",
+          level: "Entry Level",
+          averagePreparationMonths: 6,
+          skills: [],
+          isActive: true
+        });
+        role = role.toObject ? role.toObject() : role;
+      } catch {
+        role = {
+          _id: null,
+          name: String(targetRole).trim(),
+          slug: normalizedRole,
+          description: `Personalized career roadmap for ${targetRole}`,
+          skills: []
+        };
+      }
+    }
   }
 
-
   /*
-   * ------------------------------------------------
-   * 2. GET ALL AVAILABLE SKILLS
-   * ------------------------------------------------
+   * 2. COLLECT EXISTING SINGLE SOURCE OF TRUTH DATA
    */
+  // A. Skill Gap Analysis (Single source of truth)
+  let skillGap = await SkillGapAnalysis.findOne({
+    user: userId,
+    targetRole: role.slug
+  })
+    .sort({ createdAt: -1 })
+    .lean();
 
-  const allSkills =
-    await Skill.find({
-      isActive: true
-    }).lean();
+  if (!skillGap || !skillGap.skills?.length) {
+    try {
+      skillGap = await recalculateAndSaveSkillGap(userId, role.slug);
+      if (skillGap?.toObject) skillGap = skillGap.toObject();
+    } catch (err) {
+      console.warn("[RoadmapService] Could not recalculate skill gap:", err?.message);
+    }
+  }
 
+  const missingSkills = skillGap?.missingSkills || [];
+  const moderateSkills = skillGap?.moderateSkills || [];
+  const strongSkills = skillGap?.strongSkills || [];
+  const readiness = skillGap?.readinessScore ?? 0;
 
-  /*
-   * ------------------------------------------------
-   * 3. GET STUDENT'S CURRENT SKILLS
-   * ------------------------------------------------
-   */
+  // B. Existing User Skills
+  const userSkillsDocs = await UserSkill.find({ user: userId }).lean();
+  const userDoc = await User.findById(userId).lean();
 
-  const userSkills =
-    await UserSkill.find({
-      user: userId
-    }).lean();
-
-
-  const currentSkills =
-    userSkills.map((skill) => ({
-      name: skill.name,
-      normalizedName:
-        skill.normalizedName ||
-        normalizeSkill(skill.name),
-      proficiency:
-        skill.proficiency || "beginner"
-    }));
-
-
-  /*
-   * ------------------------------------------------
-   * 4. GET ROLE REQUIREMENTS
-   * ------------------------------------------------
-   */
-
-  const roleRequirements =
-    role.skills.map((roleSkill) => {
-
-      const databaseSkill =
-        allSkills.find(
-          (skill) =>
-            skill.slug === roleSkill.slug
-        );
-
-      return {
-        slug: roleSkill.slug,
-
-        name:
-          databaseSkill?.name ||
-          roleSkill.slug,
-
-        importance:
-          roleSkill.importance,
-
-        priority:
-          roleSkill.priority,
-
-        difficulty:
-          databaseSkill?.difficulty ||
-          "Intermediate"
-      };
+  const knownSkillsSet = new Set();
+  userSkillsDocs.forEach((s) => {
+    if (s.name) knownSkillsSet.add(`${s.name} (${s.proficiency || "intermediate"})`);
+  });
+  if (Array.isArray(userDoc?.currentSkills)) {
+    userDoc.currentSkills.forEach((s) => {
+      if (s) knownSkillsSet.add(`${s} (beginner)`);
     });
+  }
+  strongSkills.forEach((s) => knownSkillsSet.add(`${s} (strong)`));
+  moderateSkills.forEach((s) => knownSkillsSet.add(`${s} (moderate)`));
 
+  const knownSkills = Array.from(knownSkillsSet);
+
+  // C. Assessment Results
+  let assessmentInfo = "No assessment completed yet.";
+  try {
+    const assessment = await Assessment.findOne({ user: userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (assessment) {
+      const skillBreakdown = (assessment.results || [])
+        .map((r) => `${r.skillSlug}: ${r.score}% (${r.level})`)
+        .join(", ");
+      assessmentInfo = `Overall Score: ${assessment.overallScore}%. Skill breakdown: ${skillBreakdown || "N/A"}`;
+    }
+  } catch (err) {
+    console.warn("[RoadmapService] Assessment lookup error:", err?.message);
+  }
+
+  // D. Resume Analysis
+  let resumeInfo = "No resume analysis available.";
+  try {
+    const resume = await ResumeAnalysis.findOne({ user: userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (resume) {
+      resumeInfo = `Score: ${resume.resumeScore || "N/A"}. Summary: ${resume.summary || ""}. Detected skills: ${(resume.detectedSkills || []).join(", ") || "None"}`;
+    }
+  } catch (err) {
+    console.warn("[RoadmapService] Resume lookup error:", err?.message);
+  }
+
+  // E. GitHub Analysis
+  let githubInfo = "No GitHub analysis available.";
+  try {
+    const github = await GithubAnalysis.findOne({ user: userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (github) {
+      githubInfo = `Score: ${github.githubScore || "N/A"}. Summary: ${github.summary || ""}. Detected skills: ${(github.detectedSkills || []).join(", ") || "None"}`;
+    }
+  } catch (err) {
+    console.warn("[RoadmapService] GitHub lookup error:", err?.message);
+  }
 
   /*
-   * ------------------------------------------------
-   * 5. CREATE AI INPUT
-   *
-   * NO PREVIOUS SKILL-GAP ANALYSIS REQUIRED.
-   * GEMINI DOES THE ANALYSIS HERE.
-   * ------------------------------------------------
+   * 3. BUILD GEMINI PROMPT (Requirement 23)
    */
-
-  const studentSkillText =
-    currentSkills.length > 0
-      ? currentSkills
-          .map(
-            (skill) =>
-              `${skill.name} (${skill.proficiency})`
-          )
-          .join(", ")
-      : "No skills have been added yet.";
-
-
-  const roleSkillText =
-    roleRequirements
-      .map(
-        (skill) =>
-          `${skill.name} | slug: ${skill.slug} | importance: ${skill.importance} | priority: ${skill.priority} | difficulty: ${skill.difficulty}`
-      )
-      .join("\n");
-
-
-  /*
-   * ------------------------------------------------
-   * 6. GEMINI PROMPT
-   * ------------------------------------------------
-   */
-
   const prompt = `
-You are an expert career-planning AI.
+You are an expert career-learning planner.
 
-Create a PERSONALIZED learning roadmap for a student.
+The user's target role is:
+${role.name || targetRole}
 
-TARGET ROLE:
-${role.name}
+The user's existing skills are:
+${knownSkills.length > 0 ? knownSkills.join(", ") : "None reported yet"}
 
-ROLE DESCRIPTION:
-${role.description}
+The user's missing skills are:
+${missingSkills.length > 0 ? missingSkills.join(", ") : "None identified"}
 
-STUDENT'S CURRENT SKILLS:
-${studentSkillText}
+The user's moderate skills are:
+${moderateSkills.length > 0 ? moderateSkills.join(", ") : "None"}
 
-SKILLS REQUIRED FOR THIS ROLE:
-${roleSkillText}
+The user's strong skills are:
+${strongSkills.length > 0 ? strongSkills.join(", ") : "None"}
 
+The user's career readiness is:
+${readiness}%
 
-YOUR JOB:
+Assessment information:
+${assessmentInfo}
 
-First analyze the student's current skills against the
-requirements of the target role.
+Resume analysis:
+${resumeInfo}
 
-Then identify:
+GitHub analysis:
+${githubInfo}
 
-- strong skills
-- moderate skills
-- weak skills
-- missing skills
+Create a personalized learning roadmap.
+Do not reteach skills the user already knows unless a short review is genuinely necessary.
+Prioritize missing skills.
+Respect prerequisites.
+Estimate realistic learning time based on the user's current level.
+The roadmap must be specific to this individual.
+Do not create a generic roadmap based only on the target role.
+Do not invent skills the user already knows.
 
-Then create a realistic learning roadmap.
-
-
-VERY IMPORTANT:
-
-The roadmap duration MUST NOT be fixed to 24 weeks.
-
-The total duration must depend on the actual target role,
-the breadth of the role, the student's current skills,
-the difficulty of the missing skills, and the amount of
-learning required to become reasonably job-ready.
-
-Use a realistic duration between approximately 8 and 24 weeks.
-
-Examples:
-
-- A focused Frontend Developer path may reasonably take
-  around 10-16 weeks depending on the student's current skills.
-
-- A Backend Developer path may require more time if the
-  student lacks programming, databases, APIs, authentication,
-  deployment, etc.
-
-- A Full Stack Developer path normally requires substantially
-  more time because it combines frontend and backend skills.
-
-- A Machine Learning path may require substantially more time
-  because it can involve Python, mathematics, statistics,
-  data processing, machine learning algorithms, evaluation,
-  projects, etc.
-
-These are examples only.
-
-DO NOT copy these durations blindly.
-
-YOU must determine the appropriate duration from the actual
-target role and student's skill gaps.
-
-
-TIME ALLOCATION:
-
-Do NOT give every skill the same amount of time.
-
-A small topic may take a few days or approximately one week.
-
-A medium-sized technology may take one or several weeks.
-
-A large subject may require several weeks.
-
-For example, do not spend four weeks teaching basic HTML if
-the student only needs HTML fundamentals.
-
-Likewise, do not try to teach an entire broad subject such as
-Machine Learning in one week.
-
-Allocate time according to:
-
-1. difficulty
-2. breadth of the subject
-3. importance for the target role
-4. prerequisites
-5. student's existing proficiency
-6. student's skill gaps
-7. practical project requirements
-
-
-PERSONALIZATION:
-
-If the student already knows a skill:
-
-- DO NOT reteach its basic fundamentals.
-- Only include it if an advanced part is required.
-- If it is already strong and not necessary to improve,
-  skip it.
-
-Do not waste roadmap time teaching skills the student
-already knows.
-
-
-ORDER:
-
-Create logical prerequisites.
-
-For example:
-
-programming fundamentals
-→ framework/backend/data concepts
-→ APIs/data processing
-→ advanced concepts
-→ production skills
-→ project
-
-
-PROJECTS:
-
-The roadmap must contain practical work.
-
-Projects should appear after enough relevant skills have
-been learned.
-
-The final project should demonstrate the skills required
-for the target role.
-
-
-IMPORTANT:
-
-Do not create artificial monthly sections.
-
-Use actual week ranges.
-
-Some roadmap items may take:
-
-- 1 week
-- 2 weeks
-- 3 weeks
-- 4 weeks
-
-depending on their complexity.
-
-The TOTAL roadmap duration must be the duration you determine
-is appropriate for this student and this role.
-
-
-RETURN ONLY VALID JSON.
-
-Use exactly this structure:
-
+Return ONLY valid JSON matching this exact structure:
 {
-  "totalWeeks": 12,
-  "analysis": {
-    "strongSkills": [],
-    "moderateSkills": [],
-    "weakSkills": [],
-    "missingSkills": []
-  },
-  "items": [
+  "targetRole": "${role.name || targetRole}",
+  "estimatedTotalDuration": "8-10 weeks",
+  "alreadyKnownSkills": ${JSON.stringify(strongSkills.length > 0 ? strongSkills : knownSkills.slice(0, 5))},
+  "missingSkills": ${JSON.stringify(missingSkills)},
+  "phases": [
     {
-      "weekStart": 1,
-      "weekEnd": 1,
-      "title": "HTML fundamentals",
-      "description": "Learn only the HTML concepts required for the target role.",
-      "skillSlugs": ["html"],
-      "topics": [
-        "Semantic HTML",
-        "Forms",
-        "Accessibility basics"
-      ],
-      "estimatedHours": 8,
-      "priority": 3
+      "phaseNumber": 1,
+      "title": "Phase Title / Skill Focus",
+      "duration": "5 days",
+      "skills": ["Skill 1", "Skill 2"],
+      "priority": "high",
+      "why": "Clear explanation of why this phase is scheduled here given the student's current skills",
+      "topics": ["Key topic A", "Key topic B"],
+      "estimatedHours": 15
     }
   ]
 }
-
-RULES FOR ITEMS:
-
-- weekStart must be >= 1
-- weekEnd must be >= weekStart
-- weekEnd must be <= totalWeeks
-- totalWeeks must be between 8 and 24
-- estimatedHours must be realistic
-- do not create duplicate learning items
-- do not create filler content
-- skillSlugs must correspond to skills from the supplied role requirements
-  whenever possible
-- topics must be specific
-- roadmap items must fit inside totalWeeks
-- do not leave unexplained gaps between weeks
-- the final roadmap should end at totalWeeks
 `;
 
-
   /*
-   * ------------------------------------------------
-   * 7. CALL GEMINI
-   * ------------------------------------------------
+   * 4. CALL GEMINI (Strict: No hardcoded fallback on failure)
    */
-
-  let response;
-
-const maxAttempts = 4;
-
-for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-  try {
-    response = await ai.models.generateContent({
-      model:
-        process.env.GEMINI_MODEL ||
-        "gemini-3.8-flash",
-
-      contents: prompt,
-
-      config: {
-        responseMimeType:
-          "application/json",
-
-        temperature: 0.4,
-
-        responseSchema: {
-          type: "object",
-
-          properties: {
-            totalWeeks: {
-              type: "integer"
-            },
-
-            analysis: {
-              type: "object",
-
-              properties: {
-                strongSkills: {
-                  type: "array",
-                  items: {
-                    type: "string"
-                  }
-                },
-
-                moderateSkills: {
-                  type: "array",
-                  items: {
-                    type: "string"
-                  }
-                },
-
-                weakSkills: {
-                  type: "array",
-                  items: {
-                    type: "string"
-                  }
-                },
-
-                missingSkills: {
-                  type: "array",
-                  items: {
-                    type: "string"
-                  }
-                }
-              },
-
-              required: [
-                "strongSkills",
-                "moderateSkills",
-                "weakSkills",
-                "missingSkills"
-              ]
-            },
-
-            items: {
-              type: "array",
-
-              items: {
-                type: "object",
-
-                properties: {
-                  weekStart: {
-                    type: "integer"
-                  },
-
-                  weekEnd: {
-                    type: "integer"
-                  },
-
-                  title: {
-                    type: "string"
-                  },
-
-                  description: {
-                    type: "string"
-                  },
-
-                  skillSlugs: {
-                    type: "array",
-                    items: {
-                      type: "string"
-                    }
-                  },
-
-                  topics: {
-                    type: "array",
-                    items: {
-                      type: "string"
-                    }
-                  },
-
-                  estimatedHours: {
-                    type: "number"
-                  },
-
-                  priority: {
-                    type: "integer"
-                  }
-                },
-
-                required: [
-                  "weekStart",
-                  "weekEnd",
-                  "title",
-                  "description",
-                  "skillSlugs",
-                  "topics",
-                  "estimatedHours",
-                  "priority"
-                ]
-              }
-            }
-          },
-
-          required: [
-            "totalWeeks",
-            "analysis",
-            "items"
-          ]
-        }
-      }
-    });
-
-    break;
-  } catch (error) {
-    if (
-  error?.status !== 503 ||
-  attempt === maxAttempts
-) {
-  throw error;
-}
-
-    const delay = 2000 * Math.pow(2, attempt - 1);
-
-    console.log(
-      `Gemini temporarily unavailable. Retrying in ${
-        delay / 1000
-      } seconds... (attempt ${attempt}/${maxAttempts})`
-    );
-
-    await new Promise((resolve) =>
-      setTimeout(resolve, delay)
-    );
-  }
-}
-
-          /*
-   * ------------------------------------------------
-   * 8. PARSE GEMINI RESPONSE
-   * ------------------------------------------------
-   */
-
-  let generated;
-
-  try {
-
-    generated =
-      JSON.parse(response.text);
-
-  } catch (error) {
-
-    console.error(
-      "Invalid Gemini roadmap response:",
-      response.text
-    );
-
-    throw new Error(
-      "Gemini returned an invalid roadmap"
-    );
-  }
-
-
-  /*
-   * ------------------------------------------------
-   * 9. VALIDATE TOTAL DURATION
-   * ------------------------------------------------
-   */
-
-  const totalWeeks =
-    Math.min(
-      24,
-      Math.max(
-        8,
-        Number(generated.totalWeeks) || 12
-      )
-    );
-
-
-  /*
-   * ------------------------------------------------
-   * 10. CONVERT AI SKILLS TO MONGODB SKILLS
-   * ------------------------------------------------
-   */
-
-  const items =
-    generated.items.map((item) => {
-
-      const skillIds =
-        item.skillSlugs
-          .map((slug) =>
-            allSkills.find(
-              (skill) =>
-                skill.slug ===
-                String(slug)
-                  .trim()
-                  .toLowerCase()
-            )
-          )
-          .filter(Boolean)
-          .map((skill) => skill._id);
-
-
-      return {
-
-        weekStart:
-          Math.max(
-            1,
-            Number(item.weekStart)
-          ),
-
-        weekEnd:
-          Math.min(
-            totalWeeks,
-            Number(item.weekEnd)
-          ),
-
-        title:
-          String(item.title).trim(),
-
-        description:
-          String(item.description).trim(),
-
-        skills:
-          skillIds,
-
-        topics:
-          Array.isArray(item.topics)
-            ? item.topics
-            : [],
-
-        estimatedHours:
-          Math.max(
-            1,
-            Number(item.estimatedHours) || 1
-          ),
-
-        priority:
-          Math.max(
-            0,
-            Math.min(
-              5,
-              Number(item.priority) || 2
-            )
-          ),
-
-        completed: false,
-
-        completedAt: null
-      };
-    });
-
-
-  /*
-   * ------------------------------------------------
-   * 11. SAVE THE AI-GENERATED SKILL ANALYSIS
-   *
-   * This means the user does NOT need to visit
-   * Skill Gap first.
-   * ------------------------------------------------
-   */
-
-  await SkillGapAnalysis.findOneAndUpdate(
-
-    {
-      user: userId,
-      targetRole: role.slug
-    },
-
-    {
-      user: userId,
-
-      targetRole:
-        role.slug,
-
-      readinessScore: 0,
-
-      strongSkills:
-        generated.analysis.strongSkills || [],
-
-      moderateSkills:
-        generated.analysis.moderateSkills || [],
-
-      weakSkills:
-        generated.analysis.weakSkills || [],
-
-      missingSkills:
-        generated.analysis.missingSkills || [],
-
-      skills:
-        roleRequirements.map(
-          (requiredSkill) => {
-
-            const strong =
-              generated.analysis.strongSkills
-                .map(normalizeSkill)
-                .includes(
-                  normalizeSkill(
-                    requiredSkill.name
-                  )
-                );
-
-            const moderate =
-              generated.analysis.moderateSkills
-                .map(normalizeSkill)
-                .includes(
-                  normalizeSkill(
-                    requiredSkill.name
-                  )
-                );
-
-            const weak =
-              generated.analysis.weakSkills
-                .map(normalizeSkill)
-                .includes(
-                  normalizeSkill(
-                    requiredSkill.name
-                  )
-                );
-
-            const status =
-              strong
-                ? "Strong"
-                : moderate
-                ? "Moderate"
-                : weak
-                ? "Weak"
-                : "Missing";
-
-            return {
-
-              skillSlug:
-                requiredSkill.slug,
-
-              required:
-                requiredSkill.importance ===
-                "required",
-
-              priority:
-                requiredSkill.priority,
-
-              studentScore:
-                status === "Strong"
-                  ? 90
-                  : status === "Moderate"
-                  ? 60
-                  : status === "Weak"
-                  ? 30
-                  : 0,
-
-              status,
-
-              gap:
-                status === "Strong"
-                  ? 10
-                  : status === "Moderate"
-                  ? 40
-                  : status === "Weak"
-                  ? 70
-                  : 100
-            };
-          }
-        )
-
-    },
-
-    {
-      new: true,
-      upsert: true,
-      setDefaultsOnInsert: true
+  console.log(`[RoadmapService] Generating personalized roadmap via Gemini for role: ${role.name || targetRole}`);
+  const generated = await executeGeminiRequest({
+    prompt,
+    config: {
+      temperature: 0.3
     }
-  );
+  });
 
+  if (!generated || !Array.isArray(generated.phases) || generated.phases.length === 0) {
+    throw new Error("Gemini returned an invalid roadmap structure.");
+  }
 
   /*
-   * ------------------------------------------------
-   * 12. RETURN ROADMAP TO CONTROLLER
-   * ------------------------------------------------
+   * 5. POPULATE SKILLS AND FORMAT FOR BACKWARD COMPATIBILITY
    */
+  const allDbSkills = await Skill.find({ isActive: true }).lean();
+
+  let cumulativeWeek = 1;
+  const items = generated.phases.map((phase, idx) => {
+    // Estimate week range
+    const weekStart = cumulativeWeek;
+    // rough conversion: 1-7 days -> 1 week; 2 weeks -> 2 weeks; etc.
+    let weeksSpan = 1;
+    const durLower = String(phase.duration || "").toLowerCase();
+    if (durLower.includes("week")) {
+      const match = durLower.match(/\d+/);
+      weeksSpan = match ? Math.max(1, parseInt(match[0], 10)) : 2;
+    } else if (durLower.includes("month")) {
+      const match = durLower.match(/\d+/);
+      weeksSpan = match ? parseInt(match[0], 10) * 4 : 4;
+    } else if (durLower.includes("day")) {
+      const match = durLower.match(/\d+/);
+      const days = match ? parseInt(match[0], 10) : 5;
+      weeksSpan = Math.max(1, Math.round(days / 7));
+    }
+    const weekEnd = weekStart + weeksSpan - 1;
+    cumulativeWeek = weekEnd + 1;
+
+    // Match skills to DB IDs
+    const matchedSkillIds = [];
+    (phase.skills || []).forEach((sName) => {
+      const norm = normalizeSkill(sName);
+      const found = allDbSkills.find(
+        (ds) =>
+          normalizeSkill(ds.name) === norm ||
+          normalizeSkill(ds.slug) === norm
+      );
+      if (found) matchedSkillIds.push(found._id);
+    });
+
+    return {
+      weekStart,
+      weekEnd,
+      title: phase.title,
+      description: phase.why || `Focus on mastering ${phase.skills?.join(", ") || phase.title}`,
+      topics: phase.topics || phase.skills || [],
+      skills: matchedSkillIds,
+      estimatedHours: phase.estimatedHours || 15,
+      priority: phase.priority === "high" ? 1 : phase.priority === "medium" ? 2 : 3,
+      status: "Not Started",
+      completed: false
+    };
+  });
+
+  const totalWeeks = Math.min(24, Math.max(items[items.length - 1]?.weekEnd || 8, 4));
 
   return {
-
-    targetRole:
-      role.name,
-
-    role:
-      role._id,
-
-    description:
-      role.description,
-
+    user: userId,
+    role: role._id,
+    targetRole: role.name || targetRole,
+    title: `Personalized Learning Path for ${role.name || targetRole}`,
+    description: `Custom roadmap tailored to your existing skills and targeted to close your skill gap for ${role.name || targetRole}.`,
+    estimatedTotalDuration: generated.estimatedTotalDuration || `${totalWeeks} weeks`,
+    alreadyKnownSkills: generated.alreadyKnownSkills || strongSkills,
+    missingSkills: generated.missingSkills || missingSkills,
+    phases: generated.phases.map((p, i) => ({
+      phaseNumber: p.phaseNumber || i + 1,
+      title: p.title,
+      duration: p.duration,
+      skills: p.skills || [],
+      priority: p.priority || "high",
+      why: p.why || "",
+      topics: p.topics || [],
+      estimatedHours: p.estimatedHours || 15
+    })),
     totalWeeks,
-
-    items
+    items,
+    generatedAt: new Date()
   };
 };
 
+export const updateRoadmapItemStatus = async (
+  roadmapId,
+  itemId,
+  status
+) => {
+  // Utility for status updates if needed
+  const Roadmap = (await import("../models/Roadmap.js")).default;
+  const roadmap = await Roadmap.findById(roadmapId);
+  if (!roadmap) throw new Error("Roadmap not found");
 
-export {
-  generateRoadmap
+  const item = roadmap.items.id(itemId);
+  if (!item) throw new Error("Roadmap item not found");
+
+  item.status = status;
+  item.completed = status === "Completed";
+  item.completedAt = status === "Completed" ? new Date() : null;
+
+  const completedCount = roadmap.items.filter((i) => i.completed).length;
+  roadmap.completionPercentage = Math.round((completedCount / roadmap.items.length) * 100);
+
+  await roadmap.save();
+  return roadmap;
 };

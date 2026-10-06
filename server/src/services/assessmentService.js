@@ -581,10 +581,15 @@ export const getQuestionsForSkills = (skillSlugs) => {
     const skillQuestions = assessmentQuestions[skillSlug] || [];
 
     questions.push(
-      ...skillQuestions.map((question) => ({
-        ...question,
-        skillSlug
-      }))
+      ...skillQuestions.map((question) => {
+        const qId = question.questionId || question.id;
+        return {
+          ...question,
+          id: qId,
+          questionId: qId,
+          skillSlug
+        };
+      })
     );
   }
 
@@ -610,13 +615,15 @@ export const calculateSkillResult = (
   let correctAnswers = 0;
 
   for (const question of questions) {
+    const qId = question.questionId || question.id;
     const submittedAnswer = answers.find(
-      (answer) => answer.questionId === question.id
+      (answer) => (answer.questionId || answer.id) === qId
     );
 
     if (
       submittedAnswer &&
-      submittedAnswer.answer === question.answer
+      submittedAnswer.answer &&
+      submittedAnswer.answer.trim().toLowerCase() === question.answer.trim().toLowerCase()
     ) {
       correctAnswers++;
     }

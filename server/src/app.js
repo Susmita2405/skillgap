@@ -27,8 +27,9 @@ import activityRoutes from "./routes/activityRoutes.js";
 import favoriteRoutes from "./routes/favoriteRoutes.js";
 import adminContentRoutes from "./routes/adminContentRoutes.js";
 import skillRoutes from "./routes/skillRoutes.js";
-
-
+import resumeRoutes from "./routes/resumeRoutes.js";
+import careerAnalysisRoutes from "./routes/careerAnalysisRoutes.js";
+import githubRoutes from "./routes/githubRoutes.js";
 
 import {
   notFound,
@@ -235,12 +236,35 @@ app.use(
   adminContentRoutes
 );
 
+app.use(
+  "/api/resume",
+  resumeRoutes
+);
+
+app.use(
+  "/api/career-analysis",
+  careerAnalysisRoutes
+);
+
+app.use(
+  "/api/github",
+  githubRoutes
+);
+// --------------------------------------------------
+// SKILLS
+// --------------------------------------------------
+
+app.use(
+  "/api/skills",
+  skillRoutes
+);
+
 // --------------------------------------------------
 // 404 HANDLER
 // --------------------------------------------------
 
 app.use(notFound);
-app.use("/api/skills", skillRoutes);
+
 
 // --------------------------------------------------
 // GLOBAL ERROR HANDLER

@@ -1,13 +1,31 @@
 import { useEffect, useState } from "react";
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useNavigate,
+  useLocation
+} from "react-router-dom";
 import { getDashboard } from "../services/dashboardService";
 import "./Dashboard.css";
 import api from "../services/api";
+import {
+  getSkillGapForRole,
+  generateSkillGap
+} from "../services/skillGapService";
+
+
+import {
+  Layers3,
+  Plus,
+  FileText,
+  ArrowUpRight,
+  Github,
+} from "lucide-react";
 
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -22,6 +40,9 @@ const [targetRole, setTargetRole] = useState(
   const [roles, setRoles] = useState([]);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [savingRole, setSavingRole] = useState(false);
+  const [skillGap, setSkillGap] = useState(null);
+const [skillGapLoading, setSkillGapLoading] =
+  useState(true);
 
   // =========================
   // CUSTOM ROLE STATE
@@ -30,72 +51,96 @@ const [targetRole, setTargetRole] = useState(
   const [showCustomRole, setShowCustomRole] = useState(false);
   const [customRole, setCustomRole] = useState("");
 
-  // =========================
-  // LOAD DASHBOARD
-  // =========================
+// =========================
+// LOAD DASHBOARD
+// =========================
 
-  useEffect(() => {
-    const loadDashboard = async () => {
-      try {
-        setLoading(true);
-        setError("");
+useEffect(() => {
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        // Get dashboard
-        const response = await getDashboard();
+      const response = await getDashboard();
 
-        setDashboard(response.data);
+      const dashboardData = response.data;
 
-        // Get current target role
-        const currentRole =
-          response.data?.user?.targetRole;
+      setDashboard(dashboardData);
 
-        setTargetRole(
-          currentRole?.name ||
-            currentRole?.title ||
-            currentRole?.slug ||
-            ""
-        );
-
-        // Get available career roles
-        const rolesResponse =
-          await api.get("/careers");
-
-        const careers =
-  rolesResponse.data?.data ||
-  rolesResponse.data?.careers ||
-  [];
-
-console.log(
-  "FINAL CAREERS ARRAY:",
-  JSON.stringify(careers, null, 2)
-);
-
-setRoles(careers);
-        console.log(
-  "CAREERS FROM BACKEND:",
-  JSON.stringify(rolesResponse.data, null, 2)
-);
-      } catch (err) {
-        console.error(
-          "Dashboard loading error:",
-          err
-        );
-
-        setError(
-          err.response?.data?.message ||
-            "Unable to load dashboard"
-        );
-      } finally {
-        setLoading(false);
+      if (dashboardData?.skillGap) {
+        setSkillGap(dashboardData.skillGap);
       }
-    };
 
-    loadDashboard();
-  }, []);
+      // Get target role from backend
+      const currentRole = dashboardData?.user?.targetRole;
 
-  // =========================
-  // SELECT EXISTING ROLE
-  // =========================
+      const roleName =
+        currentRole?.name ||
+        currentRole?.title ||
+        currentRole ||
+        "";
+
+      setTargetRole(roleName);
+
+      if (roleName) {
+        localStorage.setItem(
+          "targetRole",
+          roleName
+        );
+      }
+
+    } catch (error) {
+      console.error(
+        "Failed to load dashboard:",
+        error
+      );
+
+      setError(
+        error.response?.data?.message ||
+          "Unable to load dashboard"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadDashboard();
+}, []);
+
+
+// =========================
+// LOAD AVAILABLE ROLES
+// =========================
+
+useEffect(() => {
+  const loadRoles = async () => {
+    try {
+      const response = await api.get("/careers");
+
+      console.log(
+        "AVAILABLE ROLES:",
+        response.data
+      );
+
+      setRoles(
+        response.data?.data || []
+      );
+
+    } catch (err) {
+      console.error(
+        "Failed to load roles:",
+        err
+      );
+    }
+  };
+
+  loadRoles();
+}, []);
+
+
+// =========================
+// SELECT EXISTING ROLE
+// =========================
 
 const handleRoleSelect = async (role) => {
   if (!role?._id) {
@@ -107,9 +152,16 @@ const handleRoleSelect = async (role) => {
     setSavingRole(true);
     setError("");
 
-    await api.put("/auth/target-role", {
-      targetRole: role._id,
-    });
+    const roleRes = await api.put(
+      "/auth/target-role",
+      {
+        targetRole: role._id
+      }
+    );
+
+    if (roleRes.data?.skillGap) {
+      setSkillGap(roleRes.data.skillGap);
+    }
 
     const selectedRole =
       role.name ||
@@ -117,15 +169,29 @@ const handleRoleSelect = async (role) => {
       role.slug ||
       "";
 
-    console.log("SELECTED ROLE:", selectedRole);
-    console.log("ROLE OBJECT:", role);
+    console.log(
+      "ROLE SELECTED:",
+      selectedRole
+    );
 
+    // Header / Career Track
     setTargetRole(selectedRole);
 
+    // Local storage should contain NAME, NOT ObjectId
     localStorage.setItem(
       "targetRole",
       selectedRole
     );
+
+    // IMPORTANT:
+    // Update dashboard with the complete Role object
+    setDashboard((prev) => ({
+      ...prev,
+      user: {
+        ...prev.user,
+        targetRole: role
+      }
+    }));
 
     setShowCustomRole(false);
     setCustomRole("");
@@ -139,78 +205,205 @@ const handleRoleSelect = async (role) => {
 
     setError(
       err.response?.data?.message ||
-        "Unable to update target role"
+      "Unable to update target role"
     );
+
   } finally {
     setSavingRole(false);
   }
 };
 
-  // =========================
-  // SAVE CUSTOM ROLE
-  // =========================
 
-  const handleCustomRoleSave = async () => {
-    const cleanedRole =
-      customRole.trim();
+// =========================
+// SAVE CUSTOM ROLE
+// =========================
 
-    if (!cleanedRole) {
-      setError(
-        "Please enter your career name."
+const handleCustomRoleSave = async () => {
+  const cleanedRole =
+    customRole.trim();
+
+  if (!cleanedRole) {
+    setError(
+      "Please enter your career name."
+    );
+    return;
+  }
+
+  try {
+    setSavingRole(true);
+    setError("");
+
+    const response =
+      await api.put(
+        "/auth/custom-target-role",
+        {
+          customRole: cleanedRole,
+        }
       );
+
+    if (response.data?.skillGap) {
+      setSkillGap(response.data.skillGap);
+    }
+
+    const savedRole =
+      response.data?.user?.targetRole ||
+      response.data?.role;
+
+    const selectedRole =
+      savedRole?.name ||
+      cleanedRole;
+
+    const generatedSlug =
+      savedRole?.slug ||
+      selectedRole
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+
+    // Update Career Track
+    setTargetRole(selectedRole);
+
+    localStorage.setItem(
+      "targetRole",
+      selectedRole
+    );
+
+    // IMPORTANT:
+    // Update dashboard target role too
+    setDashboard((prev) => ({
+      ...prev,
+
+      user: {
+        ...prev.user,
+
+        targetRole: {
+          ...savedRole,
+
+          name: selectedRole,
+          slug: generatedSlug,
+        },
+      },
+    }));
+
+    setShowCustomRole(false);
+    setCustomRole("");
+    setShowRoleMenu(false);
+
+  } catch (err) {
+    console.error(
+      "Failed to save custom role:",
+      err
+    );
+
+    setError(
+      err.response?.data?.message ||
+        "Unable to save your career"
+    );
+
+  } finally {
+    setSavingRole(false);
+  }
+};
+
+
+// ==================================================
+// AUTOMATIC SKILL GAP GENERATION
+// ==================================================
+//
+// Dashboard opens
+//       ↓
+// Target Role
+//       +
+// My Skills
+//       +
+// Resume Analysis
+//       +
+// GitHub Analysis
+//       ↓
+// Gemini generates combined Skill Gap
+//
+// This runs automatically whenever the target role
+// changes or Dashboard is opened.
+// ==================================================
+
+useEffect(() => {
+
+  const refreshSkillGap = async () => {
+
+    if (!dashboard) {
+      return;
+    }
+
+    const currentRole =
+      dashboard?.user?.targetRole;
+
+    const roleSlug =
+      currentRole?.slug;
+
+    if (!roleSlug) {
+
+      setSkillGap(null);
+      setSkillGapLoading(false);
+
       return;
     }
 
     try {
-      setSavingRole(true);
-      setError("");
 
-      /*
-       * This endpoint will create/find the
-       * custom Role in the backend and then
-       * save it to the current user.
-       */
+      setSkillGapLoading(true);
+
+      console.log(
+        "Refreshing skill gap for:",
+        roleSlug
+      );
+
       const response =
-        await api.put(
-          "/auth/custom-target-role",
-          {
-            customRole: cleanedRole,
-          }
+        await generateSkillGap(
+          roleSlug
         );
 
-      const savedRole =
-        response.data?.user?.targetRole ||
-        response.data?.role;
+      const freshSkillGap =
+        response?.data || null;
 
-      const selectedRole =
-  savedRole?.name ||
-  cleanedRole;
-  
+      console.log(
+        "FRESH SKILL GAP:",
+        freshSkillGap
+      );
 
-setTargetRole(selectedRole);
+      setSkillGap(
+        freshSkillGap
+      );
 
-localStorage.setItem(
-  "targetRole",
-  selectedRole
-);
+      setDashboard((previous) => ({
+        ...previous,
+        skillGap:
+          freshSkillGap
+      }));
 
-setShowCustomRole(false);
-setCustomRole("");
-setShowRoleMenu(false);
-    } catch (err) {
+    } catch (error) {
+
       console.error(
-        "Failed to save custom role:",
-        err
+        "Automatic skill gap generation failed:",
+        error
       );
 
-      setError(
-        err.response?.data?.message ||
-          "Unable to save your career"
-      );
+      setSkillGap(null);
+
     } finally {
-      setSavingRole(false);
+
+      setSkillGapLoading(false);
+
     }
   };
+
+  refreshSkillGap();
+
+}, [
+  dashboard?.user?.targetRole?.slug,
+  location.pathname
+]);
+
 
   // =========================
   // LOADING
@@ -231,6 +424,26 @@ setShowRoleMenu(false);
       </div>
     );
   }
+  /*
+|--------------------------------------------------------------------------
+| AUTOMATIC SKILL GAP GENERATION
+|--------------------------------------------------------------------------
+|
+| Every time Dashboard opens:
+|
+| Target Role
+| +
+| My Skills
+| +
+| Resume Analysis
+| +
+| GitHub Analysis
+|
+| are combined again.
+|--------------------------------------------------------------------------
+*/
+
+
 
   // =========================
   // ERROR
@@ -279,11 +492,11 @@ setShowRoleMenu(false);
 
   const user = dashboard.user;
 
-  const skillGap =
-    dashboard.skillGap || {};
+  
 
   const roadmap =
     dashboard.roadmap;
+
 
   const progress =
     dashboard.progress || {};
@@ -292,6 +505,8 @@ setShowRoleMenu(false);
     dashboard.recommendations
       ?.recommendations || [];
 
+
+
   // =========================
   // METRICS
   // =========================
@@ -299,8 +514,11 @@ setShowRoleMenu(false);
   const readinessScore =
     skillGap?.readinessScore ?? 0;
 
-  const overallProgress =
-    progress?.overallProgress ?? 0;
+  const overallProgress = Math.max(
+    Number(skillGap?.overallProgress || 0),
+    Number(skillGap?.readinessScore || 0),
+    Number(progress?.overallProgress || 0)
+  );
 
   const roadmapProgress =
     progress?.roadmapProgress ?? 0;
@@ -314,12 +532,28 @@ setShowRoleMenu(false);
   const missingSkills =
     skillGap?.missingSkills || [];
 
+  const strongCount =
+    skillGap?.skillCounts?.strong ?? strongSkills.length ?? 0;
+
+  const moderateCount =
+    skillGap?.skillCounts?.moderate ?? moderateSkills.length ?? 0;
+
+  const missingCount =
+    skillGap?.skillCounts?.missing ?? missingSkills.length ?? 0;
+
   // =========================
   // ROLE SLUG
   // =========================
 
   const targetRoleSlug =
-    user?.targetRole?.slug || "";
+  user?.targetRole?.slug ||
+  (targetRole
+    ? targetRole
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "")
+    : "");
 
   // =========================
   // HELPERS
@@ -511,48 +745,33 @@ setShowRoleMenu(false);
 
                       return (
 
-                        <button
-                          key={roleName}
-                          type="button"
-                          className={`target-role-option ${
-                            targetRole ===
-                            roleName
-                              ? "active"
-                              : ""
-                          }`}
-                         onClick={(e) => {
+                       <button
+  key={roleName}
+  type="button"
+  className={`target-role-option ${
+    targetRole === roleName ? "active" : ""
+  }`}
+  onClick={(e) => {
   e.preventDefault();
+  e.stopPropagation();
 
-  if (role) {
-    handleRoleSelect(role);
-  } else {
-    console.log(error);
+  if (!role) {
     setError(
       `${roleName} is not available in the backend.`
-      
     );
+    return;
   }
+
+  handleRoleSelect(role);
 }}
-                          disabled={
-                            savingRole
-                          }
-                        >
+  disabled={savingRole}
+>
+  <span>{roleName}</span>
 
-                          <span>
-                            {roleName}
-                          </span>
-
-
-                          {targetRole ===
-                            roleName && (
-
-                            <span>
-                              ✓
-                            </span>
-
-                          )}
-
-                        </button>
+  {targetRole === roleName && (
+    <span>✓</span>
+  )}
+</button>
 
                       );
 
@@ -657,6 +876,7 @@ setShowRoleMenu(false);
 
             </div>
 
+            
 
             {/* ==================================================
                 TAKE ASSESSMENT
@@ -756,83 +976,138 @@ setShowRoleMenu(false);
 
             </div>
 
-          </div>
+            </div>
 
-        </section>
-<section className="dashboard-card my-skills-card">
+            </section>
 
-        <div className="card-header">
+            
 
-          <div>
+         {/* Skills + Resume Section */}
+<div className="dashboard-feature-grid">
 
-            <span className="card-kicker">
-              YOUR CAREER PROFILE
-            </span>
+  {/* MY SKILLS */}
+  <section className="dashboard-feature-card skills-feature">
 
-            <h2>
-              My Skills
-            </h2>
+    <div className="feature-card-header">
 
-            <p>
-              Manage the technologies, tools and concepts
-              you already know.
-            </p>
+      <div className="feature-icon skills-icon">
+        <Layers3 size={28} />
+      </div>
 
-          </div>
+      <div className="feature-header-content">
+        <div className="feature-title-row">
+          <h2>My Skills</h2>
 
+          
+        </div>
+
+        <p>
+          Manage the technologies, tools and concepts you
+          already know.
+        </p>
+      </div>
+
+    </div>
+
+
+    <div
+  className="skill-action-box"
+  onClick={() => navigate("/skills")}
+>
+
+      <div className="skill-plus-icon">
+        <Plus size={30} />
+      </div>
+
+      <div>
+        <h3>Add or update your current skills</h3>
+
+        <p>
+          Tell us what you already know so your skill-gap
+          analysis and career roadmap can reflect your
+          actual starting point.
+        </p>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  {/* RESUME ANALYSIS */}
+  <section className="dashboard-feature-card resume-feature">
+
+    <div className="feature-card-header">
+
+      <div className="feature-icon resume-icon">
+        <FileText size={28} />
+      </div>
+
+      <div className="feature-header-content">
+
+        <div className="feature-title-row">
+
+          <h2>Analyze My Resume</h2>
 
           <button
-            type="button"
-            className="card-link"
-            onClick={() => navigate("/skills")}
+            className="resume-analysis-button"
+            onClick={() => navigate("/resume-analysis")}
           >
-
-            Manage Skills
-
-            <span>
-              ↗
-            </span>
-
+            Analyze Resume
+            <ArrowUpRight size={16} />
           </button>
 
         </div>
 
+        <p>
+          Get AI-powered insights, discover your strengths,
+          find gaps and improve your resume.
+        </p>
 
-        <div className="my-skills-content">
+        <button
+      onClick={() =>
+        navigate("/resume-analysis")
+      }
+    >
+      Analyze My Profile
+    </button>
 
-          <div className="my-skills-message">
+      </div>
 
-            <div className="my-skills-icon">
-              ✦
-            </div>
+    </div>
 
-
-            <div className="my-skills-text">
-
-              {/* <span className="my-skills-label">
-                KEEP YOUR PROFILE UPDATED
-              </span> */}
-
-              <h3>
-                Add or update your current skills
-              </h3>
-
-              <p>
-                Tell us what you already know so your
-                skill-gap analysis and career roadmap can
-                reflect your actual starting point.
-              </p>
-
-            </div>
-
-          </div>
+  
 
 
-          
+    <div className="resume-visual">
 
-        </div>
+      <div className="resume-document">
 
-      </section>
+        <div className="resume-avatar"></div>
+
+        <div className="resume-line large"></div>
+        <div className="resume-line"></div>
+        <div className="resume-line"></div>
+        <div className="resume-line short"></div>
+
+      </div>
+
+      <div className="resume-magnifier">
+        <div className="magnifier-glass"></div>
+        <div className="magnifier-handle"></div>
+      </div>
+
+      <span className="resume-spark spark-one">✦</span>
+      <span className="resume-spark spark-two">✦</span>
+      <span className="resume-spark spark-three">✦</span>
+
+    </div>
+
+  </section>
+
+</div>
+
+ 
 
         {/* ==================================================
             METRICS
@@ -1081,21 +1356,19 @@ setShowRoleMenu(false);
 
 
               <Link
-                to={
-                  targetRoleSlug
-                    ? `/skill-gap?role=${targetRoleSlug}`
-                    : "/skill-gap"
-                }
-                className="card-link"
-              >
+  to={
+    targetRoleSlug
+      ? `/skill-gap?role=${encodeURIComponent(targetRoleSlug)}`
+      : "/skill-gap"
+  }
+  className="card-link"
+>
+  Explore All
 
-                View Analysis
-
-                <span>
-                  ↗
-                </span>
-
-              </Link>
+  <span>
+    ↗
+  </span>
+</Link>
 
             </div>
 
@@ -1440,21 +1713,19 @@ setShowRoleMenu(false);
 
 
             <Link
-              to={
-                targetRoleSlug
-                  ? `/skill-gap?role=${targetRoleSlug}`
-                  : "/skill-gap"
-              }
-              className="card-link"
-            >
+  to={
+    targetRoleSlug
+      ? `/skill-gap?role=${encodeURIComponent(targetRoleSlug)}`
+      : "/skill-gap"
+  }
+  className="card-link"
+>
+  View Analysis
 
-              Explore All
-
-              <span>
-                ↗
-              </span>
-
-            </Link>
+  <span>
+    ↗
+  </span>
+</Link>
 
           </div>
 
@@ -1621,9 +1892,13 @@ setShowRoleMenu(false);
 
 
             <Link
-              to="/skill-gap"
-              className="quick-action"
-            >
+  to={
+    targetRoleSlug
+      ? `/skill-gap?role=${encodeURIComponent(targetRoleSlug)}`
+      : "/skill-gap"
+  }
+  className="quick-action"
+>
 
               <div className="quick-action-icon">
                 ◈
@@ -1731,5 +2006,7 @@ setShowRoleMenu(false);
     </div>
   );
 };
+
+
 
 export default Dashboard;

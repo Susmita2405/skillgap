@@ -7,6 +7,9 @@ export const generateRoadmap = async (
     "/roadmap/generate",
     {
       targetRole
+    },
+    {
+      timeout: 120000
     }
   );
 

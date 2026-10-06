@@ -140,6 +140,34 @@ const roadmapSchema = new mongoose.Schema(
       max: 24
     },
 
+    estimatedTotalDuration: {
+      type: String,
+      default: ""
+    },
+
+    alreadyKnownSkills: {
+      type: [String],
+      default: []
+    },
+
+    missingSkills: {
+      type: [String],
+      default: []
+    },
+
+    phases: [
+      {
+        phaseNumber: { type: Number, default: 1 },
+        title: { type: String, required: true },
+        duration: { type: String, required: true },
+        skills: { type: [String], default: [] },
+        priority: { type: String, default: "high" },
+        why: { type: String, default: "" },
+        topics: { type: [String], default: [] },
+        estimatedHours: { type: Number, default: 10 }
+      }
+    ],
+
     items: {
       type: [roadmapItemSchema],
       default: []

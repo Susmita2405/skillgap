@@ -1,4 +1,5 @@
 import UserSkill from "../models/UserSkill.js";
+import { recalculateAndSaveSkillGap } from "../services/skillGapService.js";
 
 const normalizeSkill = (skill) => {
   return String(skill)
@@ -61,10 +62,14 @@ export const addSkill = async (req, res) => {
       proficiency
     });
 
+    // Automatically recalculate skill gap after adding skill
+    const updatedSkillGap = await recalculateAndSaveSkillGap(req.user._id);
+
     return res.status(201).json({
       success: true,
       message: "Skill added successfully",
-      data: skill
+      data: skill,
+      skillGap: updatedSkillGap
     });
   } catch (error) {
     console.error("Add skill error:", error);
@@ -129,11 +134,15 @@ export const addMultipleSkills = async (req, res) => {
       results.push(created);
     }
 
+    // Automatically recalculate skill gap after adding multiple skills
+    const updatedSkillGap = await recalculateAndSaveSkillGap(req.user._id);
+
     return res.status(201).json({
       success: true,
       message: "Skills saved successfully",
       count: results.length,
-      data: results
+      data: results,
+      skillGap: updatedSkillGap
     });
   } catch (error) {
     console.error("Add multiple skills error:", error);
@@ -159,9 +168,13 @@ export const deleteSkill = async (req, res) => {
       });
     }
 
+    // Automatically recalculate skill gap after removing skill
+    const updatedSkillGap = await recalculateAndSaveSkillGap(req.user._id);
+
     return res.status(200).json({
       success: true,
-      message: "Skill removed successfully"
+      message: "Skill removed successfully",
+      skillGap: updatedSkillGap
     });
   } catch (error) {
     console.error("Delete skill error:", error);

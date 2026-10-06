@@ -1,31 +1,33 @@
 import api from "./api";
 
 export const getProjects = async () => {
-  const response =
-    await api.get("/projects");
-
+  const response = await api.get("/projects");
   return response.data;
 };
 
-export const getRecommendations =
-  async (targetRole) => {
-    const response =
-      await api.post(
-        "/projects/recommend",
-        {
-          targetRole
-        }
-      );
+export const getRecommendations = async (targetRole) => {
+  const response = await api.post("/projects/recommend", {
+    targetRole
+  });
+  return response.data;
+};
 
-    return response.data;
-  };
+export const getLatestRecommendations = async () => {
+  const response = await api.get("/projects/recommendations");
+  return response.data;
+};
 
-export const getLatestRecommendations =
-  async () => {
-    const response =
-      await api.get(
-        "/projects/recommendations"
-      );
+export const submitProject = async (payload) => {
+  const response = await api.post("/projects/submit", payload);
+  return response.data;
+};
 
-    return response.data;
-  };
+export const getUserSubmissions = async () => {
+  const response = await api.get("/projects/submissions");
+  return response.data;
+};
+
+export const getSubmissionById = async (id) => {
+  const response = await api.get(`/projects/submissions/${id}`);
+  return response.data;
+};

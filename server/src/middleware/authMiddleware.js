@@ -73,9 +73,11 @@ const protect = async (
       );
     }
 
+    const targetId = decoded.userId || decoded.id || decoded._id;
+
     const user =
       await User.findById(
-        decoded.userId
+        targetId
       );
 
     if (!user) {

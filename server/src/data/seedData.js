@@ -108,12 +108,13 @@ export const roles = [
     level: "Entry Level",
     averagePreparationMonths: 7,
     skills: [
-      { slug: "programming", importance: "important", priority: 2 },
-      { slug: "git", importance: "required", priority: 1 },
       { slug: "linux", importance: "required", priority: 1 },
+      { slug: "git", importance: "required", priority: 1 },
       { slug: "docker", importance: "required", priority: 1 },
-      { slug: "ci-cd", importance: "required", priority: 1 },
-      { slug: "cloud", importance: "important", priority: 2 }
+      { slug: "kubernetes", importance: "required", priority: 2 },
+      { slug: "aws", importance: "required", priority: 2 },
+      { slug: "terraform", importance: "required", priority: 2 },
+      { slug: "ci-cd", importance: "required", priority: 1 }
     ]
   },
 
@@ -350,6 +351,27 @@ export const skills = [
   slug: "cloud",
   category: "DevOps",
   description: "Cloud computing and infrastructure fundamentals.",
+  isActive: true
+},
+{
+  name: "Kubernetes",
+  slug: "kubernetes",
+  category: "DevOps",
+  description: "Container orchestration with Kubernetes.",
+  isActive: true
+},
+{
+  name: "AWS",
+  slug: "aws",
+  category: "DevOps",
+  description: "Amazon Web Services cloud infrastructure and services.",
+  isActive: true
+},
+{
+  name: "Terraform",
+  slug: "terraform",
+  category: "DevOps",
+  description: "Infrastructure as Code tool for automating cloud resources.",
   isActive: true
 },
 {

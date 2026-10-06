@@ -24,6 +24,7 @@ import Analytics from "./pages/Analytics.jsx";
 import Activity from "./pages/Activity.jsx";
 import SavedItems from "./pages/SavedItems.jsx";
 import Skills from "./pages/Skills.jsx";
+import ResumeAnalysis from "./pages/ResumeAnalysis.jsx";
 
 
 import AdminDashboard from "./pages/AdminDashboard.jsx";
@@ -236,10 +237,12 @@ export default function App() {
           element={<SkillGap />}
         />
 
-        {/* <Route
-          path="/roadmap"
-          element={<Roadmap />}
-        /> */}
+        <Route
+  path="/resume-analysis"
+  element={<ResumeAnalysis />}
+/>
+
+ 
 
         <Route
           path="/projects"
@@ -265,6 +268,7 @@ export default function App() {
           path="/resources"
           element={<LearningResources />}
         />
+
 
         <Route
           path="/analytics"

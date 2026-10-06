@@ -3,7 +3,8 @@ import api from "./api";
 export const generateRoadmap = async (targetRole) => {
   const response = await api.post(
     "/roadmap/generate",
-    { targetRole }
+    { targetRole },
+    { timeout: 120000 }
   );
 
   return response.data;

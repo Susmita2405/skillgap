@@ -68,7 +68,14 @@ export const getAssessmentQuestions = async (req, res) => {
      */
 
     const safeQuestions = questions.map(
-      ({ answer, ...question }) => question
+      ({ answer, ...question }) => {
+        const qId = question.questionId || question.id;
+        return {
+          ...question,
+          id: qId,
+          questionId: qId
+        };
+      }
     );
 
     return res.status(200).json({
@@ -160,14 +167,16 @@ export const submitAssessment = async (req, res) => {
 
     const validQuestionIds =
       new Set(
-        availableQuestions.map(
-          (question) => question.id
+        availableQuestions.flatMap((q) =>
+          [q.id, q.questionId].filter(Boolean)
         )
       );
 
     const invalidAnswer = answers.find(
-      (answer) =>
-        !validQuestionIds.has(answer.questionId)
+      (answer) => {
+        const id = answer.questionId || answer.id;
+        return !id || !validQuestionIds.has(id);
+      }
     );
 
     if (invalidAnswer) {
@@ -226,8 +235,8 @@ export const submitAssessment = async (req, res) => {
 
         answers: answers.map((answer) => ({
           skillSlug: answer.skillSlug,
-          questionId: answer.questionId,
-          answer: answer.answer
+          questionId: answer.questionId || answer.id,
+          answer: answer.answer || ""
         })),
 
         results,

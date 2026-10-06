@@ -23,7 +23,8 @@ import {
   User,
   LogOut,
   Menu,
-  X
+  X,
+  FileText
 } from "lucide-react";
 
 import { useState } from "react";
@@ -78,6 +79,12 @@ export default function AppLayout() {
       path: "/skill-gap",
       icon: Target
     },
+
+    {
+  label: "Resume Analysis",
+  path: "/resume-analysis",
+  icon: FileText
+},
     {
       label: "Roadmap",
       path: "/roadmap",

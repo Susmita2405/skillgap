@@ -42,6 +42,26 @@ const projectSchema = new mongoose.Schema(
       default: []
     },
 
+    targetedMissingSkills: {
+      type: [String],
+      default: []
+    },
+
+    requirements: {
+      type: [String],
+      default: []
+    },
+
+    expectedLearningOutcome: {
+      type: String,
+      default: ""
+    },
+
+    estimatedDuration: {
+      type: String,
+      default: ""
+    },
+
     isActive: {
       type: Boolean,
       default: true

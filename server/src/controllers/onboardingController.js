@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import Role from "../models/Role.js";
 import Skill from "../models/Skill.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { recalculateAndSaveSkillGap } from "../services/skillGapService.js";
 
 export const getOnboardingData = asyncHandler(async (req, res) => {
   const [roles, skills] = await Promise.all([
@@ -99,6 +100,8 @@ export const completeOnboarding = asyncHandler(async (req, res) => {
   user.onboardingCompleted = true;
 
   await user.save();
+
+  await recalculateAndSaveSkillGap(user._id, role.slug);
 
   res.json({
     success: true,
